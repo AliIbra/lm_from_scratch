@@ -1,3 +1,4 @@
+
 # Language Modeling from Scratch: BPE → N-gram → Neural Trigram → Mini GPT
 
 ## Overview
@@ -16,15 +17,15 @@ To run everything, just follow the steps below either **locally** or in **Google
 
 ## Running the Code
 
+Please go over the notebooks in the defined orders, but you can run each component independently, inside each one of there is a specific requierment a comment will indicate the required :) 
+
 ### 1. Data Preparation
 
-You need three text files:
+You need three text files: (different names)
 
 * `train.txt`
 * `validation.txt`
 * `test.txt`
-
-These should contain plain text (Shakespeare dataset).
 
 #### On Colab
 
@@ -69,72 +70,61 @@ TEST_FILE = f"{DATA_FOLDER}/test.txt"
 
 ### 2. Running BPE
 
-Run the BPE cell first:
-
-```python
-train_text = load_text(TRAIN_FILE)
-vocab, merges = byte_pair_encoding(train_text, num_merges=2000)
-tokens = bpe_tokenize_word("hello", merges)
-print(tokens)
-```
-
----
 
 ### 3. Running N-gram Models
 
-After BPE, run the N-gram cell:
-
-```python
-ngram_counts = count_ngrams(train_text, n=3, merges=merges)
-ngram_probs = calculate_ngram_probabilities(ngram_counts, 3)
-
-from collections import Counter
-vocab_size = len(get_subword_token_vocab(vocab))
-smoothed_probs = laplace_smoothing(ngram_counts, ngram_probs, vocab_size)
-
-print(generate_text(smoothed_probs, 3, start_token='h', length=50))
-```
-
----
-
 ### 4. Running Neural Trigram
-
-After BPE + n-grams, run the Neural Trigram cell:
-
-```python
-model = NeuralTrigramModel(vocab_size=len(token_to_id))
-train_model(model, inputs, targets, epochs=20, lr=0.05)
-print(generate_text(model, token_to_id, id_to_token, start_tokens=['the']))
-```
-
----
 
 ### 5. Running Mini GPT
 
-Finally, run the Transformer (Mini GPT): (it is preferred to run on Colab) 
-
-```python
-model = GPT(config).to(DEVICE)
-train(model, train_loader, val_loader, iters=500)
-save_model(model, "/content/drive/MyDrive/colab_models/gpt_model.pt")
-```
-
-For text generation:
-
-```python
-generate_text(model, "Once upon a time", max_new_tokens=50, temperature=0.8, top_k=40)
-```
-
----
-
 ## Important Notes
 
-* Run the code cell by cell, in order: BPE → N-gram → Neural Trigram → GPT.
+* Run the code **cell by cell, in order**: BPE → N-gram → Neural Trigram → GPT.
 * On **Colab**, make sure to upload or mount data first.
 * On **local**, place text files in `./data/`.
 * Training may take time — start with fewer epochs or merges for testing.
 * Models can be **saved and reloaded** to continue training later.
 
+---
+
+## Observations
+
+### 1. Effect of Number of BPE Merges
+
+I tested multiple numbers of merges for BPE.
+
+* With fewer than **2000 merges**, the **perplexity on validation text was too high**.
+* Starting from around **4000 merges**, the perplexity began to flatten and stabilize.
+* This is clearly visible in the following plot:
+
+**My opinion**: The number of merges had a **huge impact** on the performance of all models.
+
+---
+
+### 2. Different BPE Variants for Different Models
+
+I used more than one form of BPE depending on the model.
+
+* This showed me that **data quality and variety** are crucial.
+* But also the **quality of the tokenizer itself** matters:
+
+  * Not only the model but also how we segment the data into subwords changes the results.
 
 
+---
 
+### 3. GPT Hyperparameters
+
+Some key observations from GPT experiments:
+
+* **Embedding size (`n_embd`)**: making it smaller speeds up training but reduces generation quality (eg. 128). 
+* **Number of layers (`n_layer`)** and **heads (`n_head`)**: adding more helps performance, but training time grows quickly.
+* **Batch size and sequence length**: larger values improve stability but need more memory.
+* **Temperature & Top-k in generation**:
+
+  * I didn't get a very much affect from playong with the temperature but with lower temperature, I got more deterministic output.
+  * Top-k sampling helped prevent repetition.
+
+**My opinion**: Hyperparameters can drastically change model behavior. Even small adjustments in **embedding size** or **temperature** make a noticeable difference in results.
+
+---
